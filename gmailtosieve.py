@@ -108,6 +108,8 @@ if __name__ == "__main__":
                 properties[n.getAttribute('name')] = n.getAttribute('value')
         filters.append(properties)
 
+    print 'require ["fileinto", "imap4flags", "body"];'
+
     unhandled = 0
     unhandled_criteria = set()
     for f in filters:
