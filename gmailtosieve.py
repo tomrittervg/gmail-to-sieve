@@ -77,7 +77,7 @@ def filterToSieve(properties):
     #===================================================================================================
     for a in actions:
         if a == 'label':
-            sieve_script += "\tfileinto \"" + actions[a] + "\";\n"
+            sieve_script += "\tfileinto \"" + actions[a].replace("/", ".") + "\";\n"
             sieve_title = actions[a]
         elif a == 'shouldTrash':
             sieve_script += "\tdiscard;\n"
