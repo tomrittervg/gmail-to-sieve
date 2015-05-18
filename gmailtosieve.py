@@ -44,7 +44,9 @@ def filterToSieve(properties):
     if len(unknown) >= 1:
         raise UnknownEntry("Identified the following unknown filter criteria:" + str(unknown))
 
-    sieve_script = "if allof ("
+    sieve_title = ""
+    sieve_script  = "# rule:[XXX_REPLACEME_XXX]\n"
+    sieve_script += "if allof ("
 
     #===================================================================================================
     sieve_criteria = []
@@ -76,6 +78,7 @@ def filterToSieve(properties):
     for a in actions:
         if a == 'label':
             sieve_script += "\tfileinto \"" + actions[a] + "\";\n"
+            sieve_title = actions[a]
         elif a == 'shouldTrash':
             sieve_script += "\tdiscard;\n"
         elif a == 'shouldMarkAsRead':
@@ -88,6 +91,7 @@ def filterToSieve(properties):
             pass
 
     sieve_script += "}\n"
+    sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
     return sieve_script;
 
 #===================================================================================================
