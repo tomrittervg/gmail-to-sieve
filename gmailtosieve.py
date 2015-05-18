@@ -44,6 +44,7 @@ def filterToSieve(properties):
     if len(unknown) >= 1:
         raise UnknownEntry("Identified the following unknown filter criteria:" + str(unknown))
 
+    folder = None
     sieve_title = ""
     sieve_script  = "# rule:[XXX_REPLACEME_XXX]\n"
     sieve_script += "if allof ("
@@ -77,8 +78,9 @@ def filterToSieve(properties):
     #===================================================================================================
     for a in actions:
         if a == 'label':
-            sieve_script += "\tfileinto \"" + actions[a].replace("/", ".") + "\";\n"
+            folder = actions[a].replace("/", ".")
             sieve_title = actions[a]
+            sieve_script += "\tfileinto \"" + folder + "\";\n"
         elif a == 'shouldTrash':
             sieve_script += "\tdiscard;\n"
         elif a == 'shouldMarkAsRead':
@@ -92,17 +94,17 @@ def filterToSieve(properties):
 
     sieve_script += "}\n"
     sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
-    return sieve_script;
+    return sieve_script, folder
 
 #===================================================================================================
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print "Usage: " + sys.argv[0] + " filters.xml"
+    if len(sys.argv) < 4:
+        print "Usage: " + sys.argv[0] + " input:filters.xml output:filters.sieve output:folderscript.sh"
         sys.exit()
 
-    filename = sys.argv[1]
-    xmldoc = minidom.parse(filename)
+    inputfile = sys.argv[1]
+    xmldoc = minidom.parse(inputfile)
 
     filters = []
     for p in xmldoc.getElementsByTagName("entry"):
@@ -112,16 +114,32 @@ if __name__ == "__main__":
                 properties[n.getAttribute('name')] = n.getAttribute('value')
         filters.append(properties)
 
-    print 'require ["fileinto", "imap4flags", "body"];'
+    sieveout = open(sys.argv[2], "w")
+    bashout = open(sys.argv[3], "w")
 
+    sieveout.write('require ["fileinto", "imap4flags", "body"];\n')
+
+    folders  = set()
     unhandled = 0
     unhandled_criteria = set()
     for f in filters:
         try:
-            print filterToSieve(f)
+            script, folder = filterToSieve(f)
+            sieveout.write(script)
+            if folder:
+                folders.add(folder)
         except UnknownEntry     :
             unhandled += 1
             unhandled_criteria.update(getFilterUnknown(f))
+
+    if len(folders) > 0:
+        bashout.write("#!/bin/bash\n")
+        for i in folders:
+            bashout.write('mkdir -p ".' + i + '/new"\n')
+            bashout.write('mkdir -p ".' + i + '/tmp"\n')
+            bashout.write('mkdir -p ".' + i + '/cur"\n')
+            bashout.write('touch ".' + i + '/maildirfolder"\n')
+        bashout.write('chown vmail:vmail .*')
 
     if unhandled > 0:
         print unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria)
