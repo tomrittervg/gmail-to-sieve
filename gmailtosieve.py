@@ -139,7 +139,8 @@ if __name__ == "__main__":
             bashout.write('mkdir -p ".' + i + '/tmp"\n')
             bashout.write('mkdir -p ".' + i + '/cur"\n')
             bashout.write('touch ".' + i + '/maildirfolder"\n')
-        bashout.write('chown vmail:vmail .*')
+        bashout.write('chown -R vmail:vmail .*')
 
     if unhandled > 0:
         print unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria)
+
