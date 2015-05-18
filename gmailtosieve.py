@@ -78,7 +78,7 @@ def filterToSieve(properties):
     #===================================================================================================
     for a in actions:
         if a == 'label':
-            folder = actions[a].replace("/", ".")
+            folder = actions[a].replace(".", "-").replace("/", ".")
             sieve_title = actions[a]
             sieve_script += "\tfileinto \"" + folder + "\";\n"
         elif a == 'shouldTrash':
