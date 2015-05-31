@@ -84,9 +84,9 @@ def filterToSieve(properties):
         elif a == 'shouldTrash':
             sieve_script += "\tdiscard;\n"
         elif a == 'shouldMarkAsRead':
-            sieve_script += "\taddflag \"\\Seen\";\n"
+            sieve_script += "\taddflag \"\\\\Seen\";\n"
         elif a == 'shouldAlwaysMarkAsImportant':
-            sieve_script += "\taddflag \"\\Flagged\";\n"
+            sieve_script += "\taddflag \"\\\\Flagged\";\n"
         elif a == 'shouldArchive':
             pass
         elif a == 'shouldNeverSpam':
