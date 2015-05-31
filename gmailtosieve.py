@@ -55,9 +55,11 @@ def filterToSieve(properties):
         this_criteria = ""
         #Simple From, To, or Subject Matching
         if c in ["from", "to", "subject"]:
-            this_criteria += "header :contains \"" + c + "\" [ \""
-            this_criteria += "\", \"".join(criteria[c].split(" OR "))
-            this_criteria += "\" ] "
+            subcriteria = criteria[c].split(" OR ")
+            this_criteria += "header :contains \"" + c + "\" "
+            if len(subcriteria) > 1: this_criteria += "["
+            this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
+            if len(subcriteria) > 1: this_criteria += "]"
         #Match a Mailing List
         elif c == "hasTheWord" and "list:" in criteria[c]:
             list_id = criteria[c].replace("list:", "").strip("('\")")
@@ -66,34 +68,47 @@ def filterToSieve(properties):
             raise UnhandledCase("hasTheWord without a list: identifier")
         #Match a missing word
         elif c == "doesNotHaveTheWord":
-            this_criteria += "not body :text :contains [ \""
-            this_criteria += "\", \"".join(criteria[c].split(" OR "))
-            this_criteria += "\" ] "
+            subcriteria = criteria[c].split(" OR ")
+            this_criteria += "not body :text :contains "
+            if len(subcriteria) > 1: this_criteria += "["
+            this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
+            if len(subcriteria) > 1: this_criteria += "]"
 
         sieve_criteria.append(this_criteria)
 
-    sieve_script += " , ".join(sieve_criteria)
+    sieve_script += ", ".join(sieve_criteria)
     sieve_script += ")\n{\n"
 
     #===================================================================================================
+    didAction = False
     for a in actions:
         if a == 'label':
+            didAction = True
             folder = actions[a].replace(".", "-").replace("/", ".")
             sieve_title = actions[a]
             sieve_script += "\tfileinto \"" + folder + "\";\n"
         elif a == 'shouldTrash':
+            didAction = True
             sieve_script += "\tdiscard;\n"
         elif a == 'shouldMarkAsRead':
+            didAction = True
             sieve_script += "\taddflag \"\\\\Seen\";\n"
         elif a == 'shouldAlwaysMarkAsImportant':
+            didAction = True
             sieve_script += "\taddflag \"\\\\Flagged\";\n"
         elif a == 'shouldArchive':
             pass
         elif a == 'shouldNeverSpam':
             pass
 
+    if not didAction:
+        return "",""
+
     sieve_script += "}\n"
-    sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
+    if sieve_title:
+        sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
+    else:
+        sieve_script = sieve_script.replace("# rule:[XXX_REPLACEME_XXX]\n", "")
     return sieve_script, folder
 
 #===================================================================================================
@@ -117,7 +132,7 @@ if __name__ == "__main__":
     sieveout = open(sys.argv[2], "w")
     bashout = open(sys.argv[3], "w")
 
-    sieveout.write('require ["fileinto", "imap4flags", "body"];\n')
+    sieveout.write('require ["body","fileinto","imap4flags"];\n')
 
     folders  = set()
     unhandled = 0
