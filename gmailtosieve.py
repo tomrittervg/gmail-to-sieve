@@ -53,24 +53,24 @@ def filterToSieve(properties):
 
     #===================================================================================================
     sieve_criteria = []
-    for c in criteria:
+    for criterion in criteria:
         this_criteria = ""
         #Simple From, To, or Subject Matching
-        if c in ["from", "to", "subject"]:
-            subcriteria = criteria[c].split(" OR ")
-            this_criteria += "header :contains \"" + c + "\" "
+        if criterion in ["from", "to", "subject"]:
+            subcriteria = criteria[criterion].split(" OR ")
+            this_criteria += "header :contains \"" + criterion + "\" "
             if len(subcriteria) > 1: this_criteria += "["
             this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
             if len(subcriteria) > 1: this_criteria += "]"
         #Match a Mailing List
-        elif c == "hasTheWord" and "list:" in criteria[c]:
-            list_id = criteria[c].replace("list:", "").strip("('\")")
+        elif criterion == "hasTheWord" and "list:" in criteria[criterion]:
+            list_id = criteria[criterion].replace("list:", "").strip("('\")")
             this_criteria += "header :contains \"list-id\" \"" + list_id + "\""
-        elif c == "hasTheWord":
+        elif criterion == "hasTheWord":
             raise UnhandledCase("hasTheWord without a list: identifier")
         #Match a missing word
-        elif c == "doesNotHaveTheWord":
-            subcriteria = criteria[c].split(" OR ")
+        elif criterion == "doesNotHaveTheWord":
+            subcriteria = criteria[criterion].split(" OR ")
             this_criteria += "not body :text :contains "
             if len(subcriteria) > 1: this_criteria += "["
             this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
@@ -83,28 +83,28 @@ def filterToSieve(properties):
 
     #===================================================================================================
     didAction = False
-    for a in actions:
-        if a == 'label':
+    for action in actions:
+        if action == 'label':
             didAction = True
-            folder = actions[a].replace(".", "-").replace("/", ".")
-            sieve_title = actions[a]
+            folder = actions[action].replace(".", "-").replace("/", ".")
+            sieve_title = actions[action]
             sieve_script += "\tfileinto \"" + folder + "\";\n"
-        elif a == 'shouldTrash':
+        elif action == 'shouldTrash':
             didAction = True
             sieve_script += "\tdiscard;\n"
-        elif a == 'shouldMarkAsRead':
+        elif action == 'shouldMarkAsRead':
             didAction = True
             sieve_script += "\taddflag \"\\\\Seen\";\n"
-        elif a == 'shouldAlwaysMarkAsImportant':
+        elif action == 'shouldAlwaysMarkAsImportant':
             didAction = True
             sieve_script += "\taddflag \"\\\\Flagged\";\n"
-        elif a == 'shouldArchive':
+        elif action == 'shouldArchive':
             pass
-        elif a == 'shouldNeverSpam':
+        elif action == 'shouldNeverSpam':
             pass
-        elif a == 'shouldNeverMarkAsImportant':
+        elif action == 'shouldNeverMarkAsImportant':
             pass
-        elif a == 'smartLabelToApply':
+        elif action == 'smartLabelToApply':
             pass
 
     if not didAction:
@@ -128,11 +128,11 @@ if __name__ == "__main__":
     xmldoc = minidom.parse(inputfile)
 
     filters = []
-    for p in xmldoc.getElementsByTagName("entry"):
+    for entry in xmldoc.getElementsByTagName("entry"):
         properties = {}
-        for n in p.childNodes:
-            if n.nodeName == "apps:property":
-                properties[n.getAttribute('name')] = n.getAttribute('value')
+        for node in entry.childNodes:
+            if node.nodeName == "apps:property":
+                properties[node.getAttribute('name')] = node.getAttribute('value')
         filters.append(properties)
 
     sieveout = open(sys.argv[2], "w")
@@ -143,23 +143,23 @@ if __name__ == "__main__":
     folders  = set()
     unhandled = 0
     unhandled_criteria = set()
-    for f in filters:
+    for filter in filters:
         try:
-            script, folder = filterToSieve(f)
+            script, folder = filterToSieve(filter)
             sieveout.write(script)
             if folder:
                 folders.add(folder)
         except UnknownEntry     :
             unhandled += 1
-            unhandled_criteria.update(getFilterUnknown(f))
+            unhandled_criteria.update(getFilterUnknown(filter))
 
     if len(folders) > 0:
         bashout.write("#!/bin/bash\n")
-        for i in folders:
-            bashout.write('mkdir -p ".' + i + '/new"\n')
-            bashout.write('mkdir -p ".' + i + '/tmp"\n')
-            bashout.write('mkdir -p ".' + i + '/cur"\n')
-            bashout.write('touch ".' + i + '/maildirfolder"\n')
+        for target_folder in folders:
+            bashout.write('mkdir -p ".' + target_folder + '/new"\n')
+            bashout.write('mkdir -p ".' + target_folder + '/tmp"\n')
+            bashout.write('mkdir -p ".' + target_folder + '/cur"\n')
+            bashout.write('touch ".' + target_folder + '/maildirfolder"\n')
         bashout.write('chown -R vmail:vmail .*')
 
     if unhandled > 0:
