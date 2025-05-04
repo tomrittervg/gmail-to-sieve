@@ -8,6 +8,13 @@ class UnknownEntry(Exception):
 class UnhandledCase(Exception):
     pass
 
+# Should dots in the folder name be replaced by dashes (for Dovecot)
+REPLACE_FOLDER_DOTS=False
+# Should slashes in the folder name be replaced by dots (for Dovecot)
+REPLACE_FOLDER_SLASH=False
+# Should slashes in the folder name be replaced by dots (for Infomaniak)
+REMOVE_INBOX=True
+
 GMAIL_PROPERTIES = {
     #Criteria
     'to' : 'c',
@@ -86,7 +93,13 @@ def filterToSieve(properties):
     for action in actions:
         if action == 'label':
             didAction = True
-            folder = actions[action].replace(".", "-").replace("/", ".")
+            folder = actions[action]
+            if REPLACE_FOLDER_DOTS:
+                folder = folder.replace(".", "-")
+            if REPLACE_FOLDER_SLASH:
+                folder = folder.replace("/", ".")
+            if REMOVE_INBOX:
+                folder = folder.replace("INBOX/", "")
             sieve_title = actions[action]
             sieve_script += "\tfileinto \"" + folder + "\";\n"
         elif action == 'shouldTrash':
