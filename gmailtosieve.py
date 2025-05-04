@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 from xml.dom import minidom
@@ -30,11 +30,11 @@ GMAIL_PROPERTIES = {
 }
 
 def getFilterCriteria(properties):
-    return {p:v for p,v in properties.iteritems() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'c'}
+    return {p:v for p,v in properties.items() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'c'}
 def getFilterActions(properties):
-    return {p:v for p,v in properties.iteritems() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'a'}
+    return {p:v for p,v in properties.items() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'a'}
 def getFilterUnknown(properties):
-    return {p:v for p,v in properties.iteritems() if p not in GMAIL_PROPERTIES}
+    return {p:v for p,v in properties.items() if p not in GMAIL_PROPERTIES}
 
 def filterToSieve(properties):
     criteria = getFilterCriteria(properties)
@@ -115,7 +115,7 @@ def filterToSieve(properties):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print "Usage: " + sys.argv[0] + " input:filters.xml output:filters.sieve output:folderscript.sh"
+        print("Usage: " + sys.argv[0] + " input:filters.xml output:filters.sieve output:folderscript.sh")
         sys.exit()
 
     inputfile = sys.argv[1]
@@ -157,5 +157,6 @@ if __name__ == "__main__":
         bashout.write('chown -R vmail:vmail .*')
 
     if unhandled > 0:
-        print unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria)
+        print(unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria))
+
 
