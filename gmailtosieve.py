@@ -109,7 +109,7 @@ def filterToSieve(properties):
         sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
     else:
         sieve_script = sieve_script.replace("# rule:[XXX_REPLACEME_XXX]\n", "")
-    return sieve_script.encode('utf-8'), folder
+    return sieve_script, folder
 
 #===================================================================================================
 
