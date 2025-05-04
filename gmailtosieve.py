@@ -102,6 +102,10 @@ def filterToSieve(properties):
             pass
         elif a == 'shouldNeverSpam':
             pass
+        elif a == 'shouldNeverMarkAsImportant':
+            pass
+        elif a == 'smartLabelToApply':
+            pass
 
     if not didAction:
         return "",""
