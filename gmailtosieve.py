@@ -23,6 +23,8 @@ GMAIL_PROPERTIES = {
     'shouldNeverSpam' : 'a',
     'shouldMarkAsRead' : 'a',
     'shouldArchive' : 'a',
+    'shouldNeverMarkAsImportant' : 'a',
+    'smartLabelToApply' : 'a',
 
     #Ignore (What _are_ these?)
     'sizeUnit' : 'i',
