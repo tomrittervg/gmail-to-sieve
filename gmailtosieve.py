@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import sys
 from xml.dom import minidom
@@ -7,6 +7,13 @@ class UnknownEntry(Exception):
     pass
 class UnhandledCase(Exception):
     pass
+
+# Should dots in the folder name be replaced by dashes (for Dovecot)
+REPLACE_FOLDER_DOTS=False
+# Should slashes in the folder name be replaced by dots (for Dovecot)
+REPLACE_FOLDER_SLASH=False
+# Should slashes in the folder name be replaced by dots (for Infomaniak)
+REMOVE_INBOX=True
 
 GMAIL_PROPERTIES = {
     #Criteria
@@ -23,6 +30,8 @@ GMAIL_PROPERTIES = {
     'shouldNeverSpam' : 'a',
     'shouldMarkAsRead' : 'a',
     'shouldArchive' : 'a',
+    'shouldNeverMarkAsImportant' : 'a',
+    'smartLabelToApply' : 'a',
 
     #Ignore (What _are_ these?)
     'sizeUnit' : 'i',
@@ -30,11 +39,11 @@ GMAIL_PROPERTIES = {
 }
 
 def getFilterCriteria(properties):
-    return {p:v for p,v in properties.iteritems() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'c'}
+    return {p:v for p,v in properties.items() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'c'}
 def getFilterActions(properties):
-    return {p:v for p,v in properties.iteritems() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'a'}
+    return {p:v for p,v in properties.items() if p in GMAIL_PROPERTIES and GMAIL_PROPERTIES[p] == 'a'}
 def getFilterUnknown(properties):
-    return {p:v for p,v in properties.iteritems() if p not in GMAIL_PROPERTIES}
+    return {p:v for p,v in properties.items() if p not in GMAIL_PROPERTIES}
 
 def filterToSieve(properties):
     criteria = getFilterCriteria(properties)
@@ -51,24 +60,24 @@ def filterToSieve(properties):
 
     #===================================================================================================
     sieve_criteria = []
-    for c in criteria:
+    for criterion in criteria:
         this_criteria = ""
         #Simple From, To, or Subject Matching
-        if c in ["from", "to", "subject"]:
-            subcriteria = criteria[c].split(" OR ")
-            this_criteria += "header :contains \"" + c + "\" "
+        if criterion in ["from", "to", "subject"]:
+            subcriteria = criteria[criterion].split(" OR ")
+            this_criteria += "header :contains \"" + criterion + "\" "
             if len(subcriteria) > 1: this_criteria += "["
             this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
             if len(subcriteria) > 1: this_criteria += "]"
         #Match a Mailing List
-        elif c == "hasTheWord" and "list:" in criteria[c]:
-            list_id = criteria[c].replace("list:", "").strip("('\")")
+        elif criterion == "hasTheWord" and "list:" in criteria[criterion]:
+            list_id = criteria[criterion].replace("list:", "").strip("('\")")
             this_criteria += "header :contains \"list-id\" \"" + list_id + "\""
-        elif c == "hasTheWord":
+        elif criterion == "hasTheWord":
             raise UnhandledCase("hasTheWord without a list: identifier")
         #Match a missing word
-        elif c == "doesNotHaveTheWord":
-            subcriteria = criteria[c].split(" OR ")
+        elif criterion == "doesNotHaveTheWord":
+            subcriteria = criteria[criterion].split(" OR ")
             this_criteria += "not body :text :contains "
             if len(subcriteria) > 1: this_criteria += "["
             this_criteria += "\"" + "\",\"".join(subcriteria) + "\""
@@ -81,24 +90,34 @@ def filterToSieve(properties):
 
     #===================================================================================================
     didAction = False
-    for a in actions:
-        if a == 'label':
+    for action in actions:
+        if action == 'label':
             didAction = True
-            folder = actions[a].replace(".", "-").replace("/", ".")
-            sieve_title = actions[a]
+            folder = actions[action]
+            if REPLACE_FOLDER_DOTS:
+                folder = folder.replace(".", "-")
+            if REPLACE_FOLDER_SLASH:
+                folder = folder.replace("/", ".")
+            if REMOVE_INBOX:
+                folder = folder.replace("INBOX/", "")
+            sieve_title = actions[action]
             sieve_script += "\tfileinto \"" + folder + "\";\n"
-        elif a == 'shouldTrash':
+        elif action == 'shouldTrash':
             didAction = True
             sieve_script += "\tdiscard;\n"
-        elif a == 'shouldMarkAsRead':
+        elif action == 'shouldMarkAsRead':
             didAction = True
             sieve_script += "\taddflag \"\\\\Seen\";\n"
-        elif a == 'shouldAlwaysMarkAsImportant':
+        elif action == 'shouldAlwaysMarkAsImportant':
             didAction = True
             sieve_script += "\taddflag \"\\\\Flagged\";\n"
-        elif a == 'shouldArchive':
+        elif action == 'shouldArchive':
             pass
-        elif a == 'shouldNeverSpam':
+        elif action == 'shouldNeverSpam':
+            pass
+        elif action == 'shouldNeverMarkAsImportant':
+            pass
+        elif action == 'smartLabelToApply':
             pass
 
     if not didAction:
@@ -109,24 +128,24 @@ def filterToSieve(properties):
         sieve_script = sieve_script.replace("XXX_REPLACEME_XXX", sieve_title)
     else:
         sieve_script = sieve_script.replace("# rule:[XXX_REPLACEME_XXX]\n", "")
-    return sieve_script.encode('utf-8'), folder
+    return sieve_script, folder
 
 #===================================================================================================
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print "Usage: " + sys.argv[0] + " input:filters.xml output:filters.sieve output:folderscript.sh"
+        print("Usage: " + sys.argv[0] + " input:filters.xml output:filters.sieve output:folderscript.sh")
         sys.exit()
 
     inputfile = sys.argv[1]
     xmldoc = minidom.parse(inputfile)
 
     filters = []
-    for p in xmldoc.getElementsByTagName("entry"):
+    for entry in xmldoc.getElementsByTagName("entry"):
         properties = {}
-        for n in p.childNodes:
-            if n.nodeName == "apps:property":
-                properties[n.getAttribute('name')] = n.getAttribute('value')
+        for node in entry.childNodes:
+            if node.nodeName == "apps:property":
+                properties[node.getAttribute('name')] = node.getAttribute('value')
         filters.append(properties)
 
     sieveout = open(sys.argv[2], "w")
@@ -137,25 +156,26 @@ if __name__ == "__main__":
     folders  = set()
     unhandled = 0
     unhandled_criteria = set()
-    for f in filters:
+    for filter in filters:
         try:
-            script, folder = filterToSieve(f)
+            script, folder = filterToSieve(filter)
             sieveout.write(script)
             if folder:
                 folders.add(folder)
         except UnknownEntry     :
             unhandled += 1
-            unhandled_criteria.update(getFilterUnknown(f))
+            unhandled_criteria.update(getFilterUnknown(filter))
 
     if len(folders) > 0:
         bashout.write("#!/bin/bash\n")
-        for i in folders:
-            bashout.write('mkdir -p ".' + i + '/new"\n')
-            bashout.write('mkdir -p ".' + i + '/tmp"\n')
-            bashout.write('mkdir -p ".' + i + '/cur"\n')
-            bashout.write('touch ".' + i + '/maildirfolder"\n')
+        for target_folder in folders:
+            bashout.write('mkdir -p ".' + target_folder + '/new"\n')
+            bashout.write('mkdir -p ".' + target_folder + '/tmp"\n')
+            bashout.write('mkdir -p ".' + target_folder + '/cur"\n')
+            bashout.write('touch ".' + target_folder + '/maildirfolder"\n')
         bashout.write('chown -R vmail:vmail .*')
 
     if unhandled > 0:
-        print unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria)
+        print(unhandled, "filters were unable to be processed. The following unknown attributes were seen:", list(unhandled_criteria))
+
 
